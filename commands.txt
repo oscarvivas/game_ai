@@ -1,0 +1,18 @@
+
+/********
+** 1. Crear la especificacion inicial
+*******
+
+cree o actualice HACKATHON_SPEC.md baso en el siguiente reto:
+...
+siga hackathon mejores practicas.
+
+
+URL de reporsitorio
+https://github.com/oscarvivas/game_ai
+
+--Editar configuracion git
+git config --edit --global
+
+
+
