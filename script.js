@@ -51,6 +51,7 @@
     obstacles: [],
     orbs: [],
     ripple: [],
+    stars: [],
     score: 0,
     multiplier: 1,
     combo: 0,
@@ -97,6 +98,20 @@
     return isTop ? state.centerY - state.laneGap : state.centerY + state.laneGap;
   }
 
+  function initStars() {
+    state.stars = [];
+    const starCount = 150;
+    for (let i = 0; i < starCount; i++) {
+      state.stars.push({
+        x: Math.random() * state.width,
+        y: Math.random() * state.height,
+        radius: Math.random() * 1.5 + 0.5,
+        speed: Math.random() * 0.3 + 0.1,
+        opacity: Math.random() * 0.5 + 0.3
+      });
+    }
+  }
+
   function resizeCanvas() {
     state.width = window.innerWidth;
     state.height = window.innerHeight;
@@ -105,6 +120,7 @@
     canvas.height = state.height;
     state.player.x = Math.max(100, Math.round(state.width * 0.16));
     state.player.y = laneY(state.player.isTop);
+    initStars();
   }
 
   function resetRun() {
@@ -456,42 +472,114 @@
 
   function drawBackground() {
     if (state.isOverdrive) {
-      ctx.fillStyle = "rgba(15, 15, 19, 0.1)";
+      ctx.fillStyle = "rgba(5, 5, 15, 0.15)";
       ctx.fillRect(0, 0, state.width, state.height);
     } else {
       ctx.clearRect(0, 0, state.width, state.height);
-      const gradient = ctx.createLinearGradient(0, 0, state.width, state.height);
-      gradient.addColorStop(0, "#0f1020");
-      gradient.addColorStop(1, "#17172b");
+      
+      const gradient = ctx.createRadialGradient(
+        state.width * 0.3, state.height * 0.3, 0,
+        state.width * 0.5, state.height * 0.5, state.width * 0.8
+      );
+      gradient.addColorStop(0, "#1a1a3e");
+      gradient.addColorStop(0.4, "#0d0d1f");
+      gradient.addColorStop(1, "#050510");
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, state.width, state.height);
+      
+      const nebula1 = ctx.createRadialGradient(
+        state.width * 0.2, state.height * 0.25, 0,
+        state.width * 0.2, state.height * 0.25, state.width * 0.35
+      );
+      nebula1.addColorStop(0, "rgba(101, 182, 255, 0.08)");
+      nebula1.addColorStop(1, "rgba(101, 182, 255, 0)");
+      ctx.fillStyle = nebula1;
+      ctx.fillRect(0, 0, state.width, state.height);
+      
+      const nebula2 = ctx.createRadialGradient(
+        state.width * 0.75, state.height * 0.6, 0,
+        state.width * 0.75, state.height * 0.6, state.width * 0.3
+      );
+      nebula2.addColorStop(0, "rgba(255, 62, 108, 0.06)");
+      nebula2.addColorStop(1, "rgba(255, 62, 108, 0)");
+      ctx.fillStyle = nebula2;
+      ctx.fillRect(0, 0, state.width, state.height);
+    }
+    
+    for (const star of state.stars) {
+      ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+      ctx.fill();
+      
+      if (state.gameState === GAME_STATE.PLAYING) {
+        star.x -= star.speed * (state.speed / 100);
+        if (star.x < -10) {
+          star.x = state.width + 10;
+          star.y = Math.random() * state.height;
+        }
+      }
     }
 
-    ctx.strokeStyle = "rgba(255,255,255,0.25)";
+    ctx.strokeStyle = "rgba(35, 244, 238, 0.2)";
     ctx.lineWidth = 2;
+    ctx.setLineDash([10, 10]);
     ctx.beginPath();
     ctx.moveTo(0, state.centerY);
     ctx.lineTo(state.width, state.centerY);
     ctx.stroke();
+    ctx.setLineDash([]);
   }
 
   function drawPlayer() {
     for (const mark of state.player.trail) {
-      const alpha = Math.max(0, mark.life / 0.4) * 0.45;
+      const alpha = Math.max(0, mark.life / 0.4) * 0.35;
+      const trailSize = state.player.size * 0.7;
+      
+      ctx.save();
+      ctx.translate(mark.x, mark.y);
       ctx.fillStyle = `rgba(35, 244, 238, ${alpha})`;
-      ctx.fillRect(mark.x - 10, mark.y - 10, 20, 20);
+      
+      ctx.beginPath();
+      ctx.moveTo(trailSize * 0.5, 0);
+      ctx.lineTo(-trailSize * 0.3, -trailSize * 0.4);
+      ctx.lineTo(-trailSize * 0.3, trailSize * 0.4);
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.restore();
     }
 
+    const shipSize = state.player.size;
+    const glowIntensity = state.isOverdrive ? 28 : 16;
+    
+    ctx.save();
+    ctx.translate(state.player.x, state.player.y);
+    
     ctx.shadowColor = "#23f4ee";
-    ctx.shadowBlur = 16;
+    ctx.shadowBlur = glowIntensity;
     ctx.fillStyle = "#23f4ee";
-    ctx.fillRect(
-      state.player.x - state.player.size / 2,
-      state.player.y - state.player.size / 2,
-      state.player.size,
-      state.player.size
-    );
+    
+    ctx.beginPath();
+    ctx.moveTo(shipSize * 0.5, 0);
+    ctx.lineTo(-shipSize * 0.3, -shipSize * 0.5);
+    ctx.lineTo(-shipSize * 0.15, -shipSize * 0.25);
+    ctx.lineTo(-shipSize * 0.15, shipSize * 0.25);
+    ctx.lineTo(-shipSize * 0.3, shipSize * 0.5);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.shadowBlur = glowIntensity * 0.6;
+    ctx.fillStyle = "#65b6ff";
+    ctx.beginPath();
+    ctx.moveTo(shipSize * 0.5, 0);
+    ctx.lineTo(shipSize * 0.1, -shipSize * 0.15);
+    ctx.lineTo(shipSize * 0.1, shipSize * 0.15);
+    ctx.closePath();
+    ctx.fill();
+    
     ctx.shadowBlur = 0;
+    ctx.restore();
   }
 
   function drawObstacles() {
