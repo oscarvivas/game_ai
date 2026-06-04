@@ -44,6 +44,11 @@
     player: {
       x: 0,
       y: 0,
+      startY: 0,
+      targetY: 0,
+      laneSwitchT: 0,
+      laneSwitchDuration: 0.14,
+      tilt: 0,
       size: 26,
       isTop: true,
       trail: []
@@ -217,6 +222,8 @@
     canvas.height = state.height;
     state.player.x = Math.max(100, Math.round(state.width * 0.16));
     state.player.y = laneY(state.player.isTop);
+    state.player.startY = state.player.y;
+    state.player.targetY = state.player.y;
     initStars();
   }
 
@@ -241,6 +248,10 @@
     state.speed = 320;
     state.player.isTop = true;
     state.player.y = laneY(true);
+    state.player.startY = state.player.y;
+    state.player.targetY = state.player.y;
+    state.player.laneSwitchT = state.player.laneSwitchDuration;
+    state.player.tilt = 0;
     state.player.trail = [];
     targetValue.textContent = String(TARGET_SCORE);
     syncHud();
@@ -334,10 +345,27 @@
     if (state.gameState !== GAME_STATE.PLAYING) {
       return;
     }
+    state.player.startY = state.player.y;
     state.player.isTop = !state.player.isTop;
-    state.player.y = laneY(state.player.isTop);
+    state.player.targetY = laneY(state.player.isTop);
+    state.player.laneSwitchT = 0;
     state.changeCountWindow += 1;
     playTone(540, 0.05, "square", 0.06);
+  }
+
+  function updatePlayerLane(dt) {
+    if (state.player.laneSwitchT < state.player.laneSwitchDuration) {
+      const prevY = state.player.y;
+      state.player.laneSwitchT += dt;
+      const t = Math.min(1, state.player.laneSwitchT / state.player.laneSwitchDuration);
+      const eased = t * t * (3 - 2 * t);
+      state.player.y = state.player.startY + (state.player.targetY - state.player.startY) * eased;
+      const verticalVelocity = state.player.y - prevY;
+      state.player.tilt = Math.max(-0.35, Math.min(0.35, verticalVelocity * 0.06));
+      return;
+    }
+    state.player.tilt *= 0.82;
+    state.player.y = state.player.targetY;
   }
 
   function spawnObstacle() {
@@ -481,6 +509,8 @@
 
   function updatePlaying(dt) {
     state.elapsed += dt;
+
+    updatePlayerLane(dt);
 
     state.speed += dt * 8;
     updateAi(dt);
@@ -705,6 +735,7 @@
     
     ctx.save();
     ctx.translate(state.player.x, state.player.y);
+    ctx.rotate(state.player.tilt);
     
     ctx.shadowColor = "#23f4ee";
     ctx.shadowBlur = glowIntensity;
