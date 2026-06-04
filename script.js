@@ -146,7 +146,7 @@
     state.player.trail = [];
     targetValue.textContent = String(TARGET_SCORE);
     syncHud();
-    app.classList.remove("warp-active", "paused", "shake");
+    app.classList.remove("warp-active", "spin-360-once", "paused", "shake");
   }
 
   function startRun() {
@@ -164,7 +164,7 @@
 
   function setMenu() {
     state.gameState = GAME_STATE.MENU;
-    app.classList.remove("state-playing", "paused", "warp-active", "shake");
+    app.classList.remove("state-playing", "paused", "warp-active", "spin-360-once", "shake");
     overlay.style.display = "grid";
     overlayTitle.textContent = "Shift Axis: Overdrive";
     overlayMessage.textContent = "Pulsa Space, click o touch para comenzar";
@@ -217,7 +217,7 @@
     controlsHint.textContent = `Score final: ${Math.floor(state.score)} · Objetivo: ${TARGET_SCORE}`;
     startBtn.hidden = true;
     restartBtn.hidden = false;
-    app.classList.remove("state-playing", "paused");
+    app.classList.remove("state-playing", "paused", "warp-active");
   }
 
   function toggleLane() {
@@ -248,16 +248,27 @@
   }
 
   function spawnOrb() {
-    const types = ["slow", "shield"];
-    const type = types[Math.floor(Math.random() * types.length)];
+    const roll = Math.random();
+    let type = "slow";
+    if (roll < 0.16) {
+      type = "shield";
+    } else if (roll < 0.21) {
+      type = "red";
+    }
     const isTop = Math.random() > 0.5;
     state.orbs.push({
       x: state.width + 30,
       y: laneY(isTop),
       radius: 10,
       type,
-      color: type === "slow" ? "#65b6ff" : "#ffe55c"
+      color: type === "slow" ? "#65b6ff" : type === "shield" ? "#ffe55c" : "#ff3e6c"
     });
+  }
+
+  function triggerSpin360Once() {
+    app.classList.remove("spin-360-once");
+    void app.offsetWidth;
+    app.classList.add("spin-360-once");
   }
 
   function rectCollision(a, b) {
@@ -324,9 +335,13 @@
 
     if (orbType === "slow") {
       playTone(300, 0.12, "triangle", 0.08);
-    } else {
+    } else if (orbType === "shield") {
       state.shieldCharges = Math.min(2, state.shieldCharges + 1);
       playTone(780, 0.07, "sine", 0.07);
+    } else if (orbType === "red") {
+      state.score += 140;
+      triggerSpin360Once();
+      playTone(880, 0.09, "square", 0.08);
     }
 
     if (state.multiplier >= 4 && !state.isOverdrive) {
@@ -472,7 +487,7 @@
 
   function drawBackground() {
     if (state.isOverdrive) {
-      ctx.fillStyle = "rgba(5, 5, 15, 0.15)";
+      ctx.fillStyle = "rgba(15, 15, 19, 0.1)";
       ctx.fillRect(0, 0, state.width, state.height);
     } else {
       ctx.clearRect(0, 0, state.width, state.height);
