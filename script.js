@@ -57,6 +57,7 @@
     orbs: [],
     ripple: [],
     stars: [],
+    explosionShards: [],
     score: 0,
     multiplier: 1,
     combo: 0,
@@ -75,6 +76,8 @@
     pausedTime: 0,
     lastTs: 0,
     ambientSoundTimer: 0
+    ,crashPending: false
+    ,crashDelay: 0
   };
 
   let audioContext = null;
@@ -232,6 +235,7 @@
     state.orbs = [];
     state.ripple = [];
     state.score = 0;
+    state.explosionShards = [];
     state.multiplier = 1;
     state.combo = 0;
     state.aiMode = AI_MODE.CALM;
@@ -252,10 +256,13 @@
     state.player.targetY = state.player.y;
     state.player.laneSwitchT = state.player.laneSwitchDuration;
     state.player.tilt = 0;
+    state.player.visible = true;
     state.player.trail = [];
     targetValue.textContent = String(TARGET_SCORE);
     syncHud();
     app.classList.remove("warp-active", "spin-360-once", "paused", "shake");
+    state.crashPending = false;
+    state.crashDelay = 0;
   }
 
   function startRun() {
@@ -345,6 +352,9 @@
     if (state.gameState !== GAME_STATE.PLAYING) {
       return;
     }
+    if (state.crashPending) {
+      return;
+    }
     state.player.startY = state.player.y;
     state.player.isTop = !state.player.isTop;
     state.player.targetY = laneY(state.player.isTop);
@@ -424,6 +434,40 @@
     app.classList.remove("spin-360-once");
     void app.offsetWidth;
     app.classList.add("spin-360-once");
+  }
+
+  function triggerShipExplosion(x, y) {
+    state.explosionShards = [];
+    const pieces = 18;
+    for (let i = 0; i < pieces; i++) {
+      const angle = (Math.PI * 2 * i) / pieces + (Math.random() - 0.5) * 0.35;
+      const speed = 120 + Math.random() * 220;
+      state.explosionShards.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        size: 3 + Math.random() * 7,
+        life: 0.55 + Math.random() * 0.25,
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 14,
+        color: Math.random() > 0.3 ? "#23f4ee" : "#65b6ff"
+      });
+    }
+  }
+
+  function updateExplosion(dt) {
+    for (let i = state.explosionShards.length - 1; i >= 0; i -= 1) {
+      const shard = state.explosionShards[i];
+      shard.vy += 560 * dt;
+      shard.x += shard.vx * dt;
+      shard.y += shard.vy * dt;
+      shard.rotation += shard.rotationSpeed * dt;
+      shard.life -= dt;
+      if (shard.life <= 0) {
+        state.explosionShards.splice(i, 1);
+      }
+    }
   }
 
   function rectCollision(a, b) {
@@ -510,6 +554,15 @@
   function updatePlaying(dt) {
     state.elapsed += dt;
 
+    if (state.crashPending) {
+      state.crashDelay -= dt;
+      if (state.crashDelay <= 0) {
+        state.crashPending = false;
+        setGameOver("lose", "Colision fatal. Presiona Reiniciar.");
+      }
+      return;
+    }
+
     updatePlayerLane(dt);
 
     state.speed += dt * 8;
@@ -569,7 +622,10 @@
         playTone(130, 0.16, "square", 0.1);
         app.classList.add("shake");
         setTimeout(() => app.classList.remove("shake"), 120);
-        setGameOver("lose", "Colision fatal. Presiona Reiniciar.");
+        state.player.visible = false;
+        triggerShipExplosion(state.player.x, state.player.y);
+        state.crashPending = true;
+        state.crashDelay = 0.55;
         return;
       }
 
@@ -712,6 +768,9 @@
   }
 
   function drawPlayer() {
+    if (!state.player.visible) {
+      return;
+    }
     for (const mark of state.player.trail) {
       const alpha = Math.max(0, mark.life / 0.4) * 0.35;
       const trailSize = state.player.size * 0.7;
@@ -761,6 +820,20 @@
     
     ctx.shadowBlur = 0;
     ctx.restore();
+  }
+
+  function drawExplosion() {
+    for (const shard of state.explosionShards) {
+      const alpha = Math.max(0, Math.min(1, shard.life));
+      ctx.save();
+      ctx.translate(shard.x, shard.y);
+      ctx.rotate(shard.rotation);
+      ctx.fillStyle = shard.color;
+      ctx.globalAlpha = alpha;
+      ctx.fillRect(-shard.size / 2, -shard.size / 2, shard.size, shard.size);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
   }
 
   function drawObstacles() {
@@ -863,12 +936,15 @@
     drawObstacles();
     drawOrbs();
     drawPlayer();
+    drawExplosion();
     drawPausedTag();
   }
 
   function gameLoop(ts) {
     const delta = Math.min(0.033, (ts - state.lastTs) / 1000 || 0.016);
     state.lastTs = ts;
+
+    updateExplosion(delta);
 
     if (state.gameState === GAME_STATE.PLAYING) {
       updatePlaying(delta);
