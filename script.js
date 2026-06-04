@@ -1114,25 +1114,65 @@
         ctx.save();
         ctx.translate(cx, cy);
         ctx.scale(pulse, pulse);
+        ctx.rotate(Math.sin((obs.pulseTime || 0) * 3.2) * 0.04);
 
         ctx.shadowColor = "#7df78a";
         ctx.shadowBlur = 12;
 
-        ctx.fillStyle = "rgba(92, 255, 130, 0.95)";
+        const saucerGradient = ctx.createRadialGradient(
+          -obs.width * 0.13,
+          -obs.height * 0.2,
+          obs.width * 0.05,
+          0,
+          0,
+          obs.width * 0.48
+        );
+        saucerGradient.addColorStop(0, "rgba(186, 255, 200, 0.98)");
+        saucerGradient.addColorStop(0.45, "rgba(92, 255, 130, 0.96)");
+        saucerGradient.addColorStop(1, "rgba(25, 118, 66, 0.94)");
+        ctx.fillStyle = saucerGradient;
         ctx.beginPath();
         ctx.ellipse(0, 0, obs.width * 0.42, obs.height * 0.32, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = "rgba(160, 255, 185, 0.9)";
+        const domeGradient = ctx.createRadialGradient(
+          -obs.width * 0.05,
+          -obs.height * 0.14,
+          obs.width * 0.01,
+          0,
+          -obs.height * 0.08,
+          obs.width * 0.26
+        );
+        domeGradient.addColorStop(0, "rgba(240, 255, 245, 0.92)");
+        domeGradient.addColorStop(0.55, "rgba(160, 255, 185, 0.88)");
+        domeGradient.addColorStop(1, "rgba(62, 200, 110, 0.52)");
+        ctx.fillStyle = domeGradient;
         ctx.beginPath();
         ctx.ellipse(0, -obs.height * 0.08, obs.width * 0.24, obs.height * 0.17, 0, 0, Math.PI * 2);
         ctx.fill();
+
+        ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
+        ctx.beginPath();
+        ctx.ellipse(obs.width * 0.02, obs.height * 0.12, obs.width * 0.31, obs.height * 0.11, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(223, 255, 230, 0.5)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.ellipse(-obs.width * 0.07, -obs.height * 0.12, obs.width * 0.15, obs.height * 0.1, -0.2, 0, Math.PI * 1.3);
+        ctx.stroke();
 
         if (!blink) {
           ctx.fillStyle = "#081617";
           ctx.beginPath();
           ctx.arc(-obs.width * 0.07, -obs.height * 0.1, 2.2, 0, Math.PI * 2);
           ctx.arc(obs.width * 0.07, -obs.height * 0.1, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "rgba(255, 255, 255, 0.72)";
+          ctx.beginPath();
+          ctx.arc(-obs.width * 0.075, -obs.height * 0.112, 0.9, 0, Math.PI * 2);
+          ctx.arc(obs.width * 0.065, -obs.height * 0.112, 0.9, 0, Math.PI * 2);
           ctx.fill();
         }
 
@@ -1160,9 +1200,33 @@
         ctx.lineTo(obs.vertices[i].x - obs.width / 2, obs.vertices[i].y - obs.height / 2);
       }
       ctx.closePath();
-      
-      ctx.fillStyle = obs.color;
+
+      const asteroidGradient = ctx.createRadialGradient(
+        -obs.width * 0.22,
+        -obs.height * 0.18,
+        obs.width * 0.03,
+        0,
+        0,
+        obs.width * 0.74
+      );
+      asteroidGradient.addColorStop(0, "rgba(255, 188, 208, 0.95)");
+      asteroidGradient.addColorStop(0.45, obs.color);
+      asteroidGradient.addColorStop(1, "rgba(116, 30, 58, 0.96)");
+      ctx.fillStyle = asteroidGradient;
       ctx.fill();
+
+      ctx.fillStyle = "rgba(84, 18, 42, 0.38)";
+      ctx.beginPath();
+      ctx.arc(obs.width * 0.06, obs.height * 0.04, Math.max(2, obs.width * 0.12), 0, Math.PI * 2);
+      ctx.arc(-obs.width * 0.17, -obs.height * 0.05, Math.max(1.8, obs.width * 0.09), 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(255, 230, 238, 0.42)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(-obs.width * 0.22, -obs.height * 0.12);
+      ctx.lineTo(obs.width * 0.16, -obs.height * 0.03);
+      ctx.stroke();
       
       ctx.strokeStyle = "rgba(255, 100, 140, 0.6)";
       ctx.lineWidth = 1.5;
@@ -1176,6 +1240,7 @@
   function drawOrbs() {
     for (const orb of state.orbs) {
       ctx.save();
+      const orbRadius = orb.radius || orb.baseRadius || 10;
       
       if (orb.type === "shield" || orb.type === "red") {
         const flicker = 0.7 + Math.sin(orb.pulseTime * 12) * 0.15 + Math.random() * 0.15;
@@ -1200,13 +1265,57 @@
         ctx.beginPath();
         ctx.arc(orb.x, orb.y, radiusFlicker * 0.4, 0, Math.PI * 2);
         ctx.fill();
+
+        const shadowCore = ctx.createRadialGradient(
+          orb.x + radiusFlicker * 0.18,
+          orb.y + radiusFlicker * 0.2,
+          radiusFlicker * 0.08,
+          orb.x,
+          orb.y,
+          radiusFlicker * 0.92
+        );
+        shadowCore.addColorStop(0, "rgba(0, 0, 0, 0.34)");
+        shadowCore.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = shadowCore;
+        ctx.beginPath();
+        ctx.arc(orb.x, orb.y, radiusFlicker * 0.92, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalAlpha = 0.7;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(orb.x - radiusFlicker * 0.12, orb.y - radiusFlicker * 0.12, radiusFlicker * 0.58, Math.PI * 1.05, Math.PI * 1.95);
+        ctx.stroke();
         
         ctx.shadowBlur = 0;
         ctx.globalAlpha = 1;
       } else {
-        ctx.fillStyle = orb.color;
+        const orbGradient = ctx.createRadialGradient(
+          orb.x - orbRadius * 0.25,
+          orb.y - orbRadius * 0.25,
+          orbRadius * 0.12,
+          orb.x,
+          orb.y,
+          orbRadius
+        );
+        orbGradient.addColorStop(0, "rgba(255, 255, 255, 0.9)");
+        orbGradient.addColorStop(0.42, orb.color);
+        orbGradient.addColorStop(1, "rgba(16, 52, 96, 0.95)");
+        ctx.fillStyle = orbGradient;
         ctx.beginPath();
-        ctx.arc(orb.x, orb.y, orb.radius, 0, Math.PI * 2);
+        ctx.arc(orb.x, orb.y, orbRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
+        ctx.beginPath();
+        ctx.arc(orb.x - orbRadius * 0.24, orb.y - orbRadius * 0.24, orbRadius * 0.28, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+        ctx.beginPath();
+        ctx.arc(orb.x + orbRadius * 0.2, orb.y + orbRadius * 0.22, orbRadius * 0.34, 0, Math.PI * 2);
         ctx.fill();
       }
       
