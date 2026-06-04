@@ -64,13 +64,16 @@
     shieldCharges: 0,
     spawnTimer: 0,
     orbTimer: 0,
+    orbSequenceCounter: 0,
     elapsed: 0,
     speed: 320,
     pausedTime: 0,
-    lastTs: 0
+    lastTs: 0,
+    ambientSoundTimer: 0
   };
 
   let audioContext = null;
+  let ambientOscillator = null;
 
   function initAudio() {
     if (!audioContext) {
@@ -92,6 +95,100 @@
     gain.connect(audioContext.destination);
     osc.start();
     osc.stop(audioContext.currentTime + duration);
+  }
+
+  function playVictorySound() {
+    if (!audioContext) return;
+    const notes = [
+      { freq: 523, time: 0, duration: 0.15 },
+      { freq: 659, time: 0.15, duration: 0.15 },
+      { freq: 784, time: 0.3, duration: 0.15 },
+      { freq: 1047, time: 0.45, duration: 0.4 },
+      { freq: 880, time: 0.65, duration: 0.1 },
+      { freq: 1047, time: 0.8, duration: 0.5 }
+    ];
+    
+    notes.forEach(note => {
+      setTimeout(() => playTone(note.freq, note.duration, "sine", 0.15), note.time * 1000);
+    });
+  }
+
+  function playDefeatSound() {
+    if (!audioContext) return;
+    const notes = [
+      { freq: 400, time: 0, duration: 0.2 },
+      { freq: 350, time: 0.15, duration: 0.2 },
+      { freq: 300, time: 0.3, duration: 0.2 },
+      { freq: 200, time: 0.45, duration: 0.3 },
+      { freq: 150, time: 0.7, duration: 0.5 }
+    ];
+    
+    notes.forEach(note => {
+      setTimeout(() => playTone(note.freq, note.duration, "sawtooth", 0.12), note.time * 1000);
+    });
+    
+    setTimeout(() => playTone(100, 0.6, "square", 0.08), 800);
+  }
+
+  function startAmbientSound() {
+    if (!audioContext || ambientOscillator) return;
+    
+    ambientOscillator = audioContext.createOscillator();
+    const ambientGain = audioContext.createGain();
+    const filter = audioContext.createBiquadFilter();
+    
+    ambientOscillator.type = "sine";
+    ambientOscillator.frequency.setValueAtTime(55, audioContext.currentTime);
+    
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(200, audioContext.currentTime);
+    filter.Q.setValueAtTime(1, audioContext.currentTime);
+    
+    ambientGain.gain.setValueAtTime(0, audioContext.currentTime);
+    ambientGain.gain.linearRampToValueAtTime(0.03, audioContext.currentTime + 1);
+    
+    ambientOscillator.connect(filter);
+    filter.connect(ambientGain);
+    ambientGain.connect(audioContext.destination);
+    
+    ambientOscillator.start();
+  }
+
+  function stopAmbientSound() {
+    if (!ambientOscillator) return;
+    
+    const gain = audioContext.createGain();
+    ambientOscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    gain.gain.setValueAtTime(0.03, audioContext.currentTime);
+    gain.gain.linearRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+    
+    setTimeout(() => {
+      if (ambientOscillator) {
+        ambientOscillator.stop();
+        ambientOscillator = null;
+      }
+    }, 500);
+  }
+
+  function updateAmbientSound(dt) {
+    if (!ambientOscillator || !audioContext) return;
+    
+    state.ambientSoundTimer += dt;
+    
+    if (state.ambientSoundTimer >= 0.5) {
+      const baseFreq = 55;
+      const variation = Math.sin(state.elapsed * 0.5) * 10;
+      const speedFactor = Math.min(state.speed / 320, 2);
+      const targetFreq = baseFreq + variation + (speedFactor * 15);
+      
+      ambientOscillator.frequency.setValueAtTime(
+        targetFreq,
+        audioContext.currentTime
+      );
+      
+      state.ambientSoundTimer = 0;
+    }
   }
 
   function laneY(isTop) {
@@ -139,6 +236,7 @@
     state.shieldCharges = 0;
     state.spawnTimer = 0;
     state.orbTimer = 0;
+    state.orbSequenceCounter = 0;
     state.elapsed = 0;
     state.speed = 320;
     state.player.isTop = true;
@@ -160,6 +258,7 @@
     startBtn.hidden = true;
     restartBtn.hidden = true;
     overlay.style.display = "none";
+    startAmbientSound();
   }
 
   function setMenu() {
@@ -218,6 +317,13 @@
     startBtn.hidden = true;
     restartBtn.hidden = false;
     app.classList.remove("state-playing", "paused", "warp-active");
+    stopAmbientSound();
+    
+    if (outcome === "victory") {
+      playVictorySound();
+    } else {
+      playDefeatSound();
+    }
   }
 
   function toggleLane() {
@@ -238,30 +344,51 @@
     const width = 36 + Math.random() * 30;
     const height = 44 + Math.random() * 34;
     const isTop = Math.random() > 0.5;
+    
+    const vertexCount = 6 + Math.floor(Math.random() * 3);
+    const vertices = [];
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radiusX = width / 2;
+    const radiusY = height / 2;
+    
+    for (let i = 0; i < vertexCount; i++) {
+      const angle = (Math.PI * 2 * i) / vertexCount;
+      const randomness = 0.6 + Math.random() * 0.4;
+      const x = centerX + Math.cos(angle) * radiusX * randomness;
+      const y = centerY + Math.sin(angle) * radiusY * randomness;
+      vertices.push({ x, y });
+    }
+    
+    const colorVariation = Math.floor(Math.random() * 30);
+    const baseColor = `rgb(${255 - colorVariation}, ${62 + colorVariation}, ${108 + colorVariation})`;
+    
     state.obstacles.push({
       x: state.width + width,
       y: laneY(isTop) - height / 2,
       width,
       height,
-      color: "#ff3e6c"
+      color: baseColor,
+      vertices,
+      rotation: Math.random() * Math.PI * 2,
+      rotationSpeed: (Math.random() - 0.5) * 0.5
     });
   }
 
   function spawnOrb() {
-    const roll = Math.random();
-    let type = "slow";
-    if (roll < 0.16) {
-      type = "shield";
-    } else if (roll < 0.21) {
-      type = "red";
-    }
+    const sequence = ["slow", "slow", "shield", "red"];
+    const type = sequence[state.orbSequenceCounter % 4];
+    state.orbSequenceCounter += 1;
+    
     const isTop = Math.random() > 0.5;
     state.orbs.push({
       x: state.width + 30,
       y: laneY(isTop),
       radius: 10,
       type,
-      color: type === "slow" ? "#65b6ff" : type === "shield" ? "#ffe55c" : "#ff3e6c"
+      color: type === "slow" ? "#65b6ff" : type === "shield" ? "#ffe55c" : "#ff3e6c",
+      pulseTime: 0,
+      baseRadius: 10
     });
   }
 
@@ -357,6 +484,7 @@
 
     state.speed += dt * 8;
     updateAi(dt);
+    updateAmbientSound(dt);
 
     const overdriveSpeedFactor = state.isOverdrive ? 1.5 : 1;
     const speed = state.speed * currentSpeedFactor() * overdriveSpeedFactor;
@@ -388,6 +516,10 @@
     for (let i = state.obstacles.length - 1; i >= 0; i -= 1) {
       const obs = state.obstacles[i];
       obs.x -= speed * dt;
+      
+      if (obs.rotation !== undefined) {
+        obs.rotation += obs.rotationSpeed * dt;
+      }
 
       if (rectCollision(playerRect, obs)) {
         if (state.isOverdrive) {
@@ -419,6 +551,10 @@
     for (let i = state.orbs.length - 1; i >= 0; i -= 1) {
       const orb = state.orbs[i];
       orb.x -= speed * dt;
+      
+      if (orb.pulseTime !== undefined) {
+        orb.pulseTime += dt;
+      }
 
       if (circleRectCollision(orb, playerRect)) {
         applyOrb(orb.type);
@@ -446,7 +582,6 @@
     state.score += dt * (survivalRate * state.multiplier);
 
     if (state.score >= TARGET_SCORE) {
-      playTone(980, 0.26, "triangle", 0.12);
       setGameOver("victory", "Objetivo alcanzado. Reinicia para otra ronda.");
       return;
     }
@@ -599,17 +734,76 @@
 
   function drawObstacles() {
     for (const obs of state.obstacles) {
+      if (!obs.vertices) {
+        ctx.fillStyle = obs.color;
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+        continue;
+      }
+      
+      ctx.save();
+      ctx.translate(obs.x + obs.width / 2, obs.y + obs.height / 2);
+      ctx.rotate(obs.rotation || 0);
+      
+      ctx.shadowColor = "#ff3e6c";
+      ctx.shadowBlur = 12;
+      
+      ctx.beginPath();
+      ctx.moveTo(obs.vertices[0].x - obs.width / 2, obs.vertices[0].y - obs.height / 2);
+      for (let i = 1; i < obs.vertices.length; i++) {
+        ctx.lineTo(obs.vertices[i].x - obs.width / 2, obs.vertices[i].y - obs.height / 2);
+      }
+      ctx.closePath();
+      
       ctx.fillStyle = obs.color;
-      ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+      ctx.fill();
+      
+      ctx.strokeStyle = "rgba(255, 100, 140, 0.6)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      
+      ctx.shadowBlur = 0;
+      ctx.restore();
     }
   }
 
   function drawOrbs() {
     for (const orb of state.orbs) {
-      ctx.beginPath();
-      ctx.fillStyle = orb.color;
-      ctx.arc(orb.x, orb.y, orb.radius, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.save();
+      
+      if (orb.type === "shield" || orb.type === "red") {
+        const flicker = 0.7 + Math.sin(orb.pulseTime * 12) * 0.15 + Math.random() * 0.15;
+        const radiusFlicker = orb.baseRadius * (0.95 + Math.sin(orb.pulseTime * 10) * 0.1);
+        
+        ctx.shadowColor = orb.color;
+        ctx.shadowBlur = 15 + Math.sin(orb.pulseTime * 8) * 5;
+        
+        const gradient = ctx.createRadialGradient(orb.x, orb.y, 0, orb.x, orb.y, radiusFlicker);
+        gradient.addColorStop(0, orb.color);
+        gradient.addColorStop(0.6, orb.color);
+        gradient.addColorStop(1, `rgba(${orb.type === "shield" ? "255, 229, 92" : "255, 62, 108"}, 0)`);
+        
+        ctx.globalAlpha = flicker;
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(orb.x, orb.y, radiusFlicker, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.globalAlpha = 0.8 + Math.sin(orb.pulseTime * 15) * 0.2;
+        ctx.fillStyle = "rgba(255, 255, 200, " + (0.6 * flicker) + ")";
+        ctx.beginPath();
+        ctx.arc(orb.x, orb.y, radiusFlicker * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.fillStyle = orb.color;
+        ctx.beginPath();
+        ctx.arc(orb.x, orb.y, orb.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      ctx.restore();
     }
 
     for (const ring of state.ripple) {
