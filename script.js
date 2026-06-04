@@ -74,6 +74,7 @@
     spawnTimer: 0,
     orbTimer: 0,
     shotCooldown: 0,
+    enemySpawnCounter: 0,
     orbSequenceCounter: 0,
     elapsed: 0,
     speed: 320,
@@ -256,6 +257,7 @@
     state.spawnTimer = 0;
     state.orbTimer = 0;
     state.shotCooldown = 0;
+    state.enemySpawnCounter = 0;
     state.orbSequenceCounter = 0;
     state.elapsed = 0;
     state.fireworkTimer = 0;
@@ -457,6 +459,23 @@
     const width = 36 + Math.random() * 30;
     const height = 44 + Math.random() * 34;
     const isTop = Math.random() > 0.5;
+    const isAlien = state.enemySpawnCounter % 2 === 1;
+    state.enemySpawnCounter += 1;
+
+    if (isAlien) {
+      state.obstacles.push({
+        type: "alien",
+        x: state.width + width,
+        y: laneY(isTop) - height / 2,
+        width,
+        height,
+        color: "#7df78a",
+        pulseTime: 0,
+        eyeBlinkTime: Math.random() * 4,
+        bobOffset: Math.random() * Math.PI * 2
+      });
+      return;
+    }
     
     const vertexCount = 6 + Math.floor(Math.random() * 3);
     const vertices = [];
@@ -477,6 +496,7 @@
     const baseColor = `rgb(${255 - colorVariation}, ${62 + colorVariation}, ${108 + colorVariation})`;
     
     state.obstacles.push({
+      type: "asteroid",
       x: state.width + width,
       y: laneY(isTop) - height / 2,
       width,
@@ -718,6 +738,12 @@
     for (let i = state.obstacles.length - 1; i >= 0; i -= 1) {
       const obs = state.obstacles[i];
       obs.x -= speed * dt;
+
+      if (obs.type === "alien") {
+        obs.pulseTime += dt;
+        obs.eyeBlinkTime += dt;
+        obs.y += Math.sin(state.elapsed * 4 + obs.bobOffset) * 0.55;
+      }
       
       if (obs.rotation !== undefined) {
         obs.rotation += obs.rotationSpeed * dt;
@@ -1012,6 +1038,42 @@
 
   function drawObstacles() {
     for (const obs of state.obstacles) {
+      if (obs.type === "alien") {
+        const cx = obs.x + obs.width / 2;
+        const cy = obs.y + obs.height / 2;
+        const pulse = 1 + Math.sin((obs.pulseTime || 0) * 8) * 0.04;
+        const blink = ((obs.eyeBlinkTime || 0) % 3.2) < 0.16;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(pulse, pulse);
+
+        ctx.shadowColor = "#7df78a";
+        ctx.shadowBlur = 12;
+
+        ctx.fillStyle = "rgba(92, 255, 130, 0.95)";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, obs.width * 0.42, obs.height * 0.32, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(160, 255, 185, 0.9)";
+        ctx.beginPath();
+        ctx.ellipse(0, -obs.height * 0.08, obs.width * 0.24, obs.height * 0.17, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (!blink) {
+          ctx.fillStyle = "#081617";
+          ctx.beginPath();
+          ctx.arc(-obs.width * 0.07, -obs.height * 0.1, 2.2, 0, Math.PI * 2);
+          ctx.arc(obs.width * 0.07, -obs.height * 0.1, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.shadowBlur = 0;
+        ctx.restore();
+        continue;
+      }
+
       if (!obs.vertices) {
         ctx.fillStyle = obs.color;
         ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
