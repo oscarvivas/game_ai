@@ -26,7 +26,7 @@ Juego arcade de un boton donde el jugador invierte su posicion entre arriba/abaj
 - Objetos recolectables para sumar puntos y habilitar racha/multiplicador.
 
 ### 4.2 Reglas de cierre
-- Victoria: alcanzar puntaje objetivo (por defecto: 1000).
+- Victoria: alcanzar puntaje objetivo (por defecto: 5000).
 - Derrota: colision fatal con obstaculo.
 - Ambos estados deben detener la partida y mostrar resultado.
 
@@ -38,8 +38,9 @@ Juego arcade de un boton donde el jugador invierte su posicion entre arriba/abaj
 
 ### 4.4 Momento wow (obligatorio)
 Cuando el jugador entra en Overdrive:
-- Rotacion/transformacion del contenedor de juego.
-- Cambio fuerte de paleta (filtro, glow, contrastes).
+- Se activa Hipervelocidad (Efecto Warp) en lugar del giro 360.
+- Se generan estelas luminosas por persistencia de fotogramas (motion blur) en Canvas.
+- Se activa vibracion de pantalla con clase CSS warp-active durante todo el estado.
 - Refuerzo sonoro (subida de energia) y feedback visual de impacto.
 
 ## 5. Mecanica principal del juego
@@ -67,6 +68,7 @@ Supuesto explicito: "Devin" se interpreta como asistente de desarrollo asistido 
 ## 7. Requisitos visuales y sonoros
 - Estilo visual coherente (retro-neon o equivalente), no placeholder plano sin pulido.
 - Efectos minimos de game feel: glow, trail, shake o ripple.
+- Efecto Warp obligatorio: estela visual por opacidad + shake CSS.
 - Sonido funcional:
 - Efecto para input/salto de carril.
 - Efecto para colision/recolectable.
@@ -102,7 +104,7 @@ Transiciones obligatorias:
 - El puntaje se ve y se actualiza en tiempo real.
 - Hay condicion de victoria o derrota implementada y comprobable.
 - El boton de reinicio reinicia completamente la sesion de juego.
-- El momento wow ocurre en una partida normal y es claramente visible.
+- El momento wow (Warp) ocurre en una partida normal y es claramente visible.
 - Existe al menos un uso de IA visible dentro del gameplay.
 - El juego se puede demostrar completo en 90 segundos.
 - Calidad visual y sonora suficiente para una demo de hackathon.
@@ -111,7 +113,7 @@ Transiciones obligatorias:
 - 0-15s: abrir juego en Chrome, explicar objetivo en una frase.
 - 15-40s: mostrar mecanica principal (cambio de carril) y puntaje en vivo.
 - 40-65s: evidenciar IA adaptativa (dificultad/patrones cambian por comportamiento).
-- 65-80s: activar momento wow (Overdrive) con impacto visual y sonoro.
+- 65-80s: activar momento wow (Warp/Overdrive) con estelas + shake + audio.
 - 80-90s: provocar cierre (victoria o derrota) y usar boton de reinicio.
 
 ## 13. Plan de implementacion (1 hora)
@@ -120,7 +122,7 @@ Transiciones obligatorias:
 - Min 20-35: obstaculos/orbes + colisiones + score.
 - Min 35-45: cierre (win/lose) + overlays + reinicio.
 - Min 45-55: IA adaptativa visible + balance minimo.
-- Min 55-60: momento wow + pulido audiovisual + smoke test en Chrome.
+- Min 55-60: integrar Warp (render/update/CSS) + pulido audiovisual + smoke test en Chrome.
 
 ## 14. Riesgos y mitigacion
 - Riesgo: IA muy compleja para 1 hora.
@@ -137,3 +139,48 @@ Transiciones obligatorias:
 - HACKATHON_SPEC.md actualizado.
 - Demo funcional de 90 segundos en Chrome.
 - Nota corta del uso de IA/Devin en el desarrollo.
+
+## 16. Especificacion funcional del Momento Wow: Hipervelocidad (Efecto Warp)
+
+### 16.1 Resumen del feature
+Esta funcionalidad reemplaza el giro de 360 grados por un efecto visual de hiperespacio o Warp que transmite velocidad extrema y tension. El efecto se logra en Canvas evitando el borrado completo por fotograma y aplicando un temblor de pantalla en CSS.
+
+### 16.2 Activacion y desactivacion
+- Activacion: el sistema debe activar isOverdrive = true cuando el multiplicador alcance x4.
+- Duracion: el estado de hipervelocidad debe durar exactamente 10 segundos.
+- Desactivacion: al concluir 10 segundos, el sistema debe restaurar isOverdrive = false, velocidad normal y multiplicador a x1.
+
+### 16.3 Reglas de renderizado (truco tecnico)
+Restriccion obligatoria de implementacion:
+- Prohibido crear sistemas de particulas o estelas basadas en arrays de coordenadas para este feature.
+
+Comportamiento normal (isOverdrive == false):
+- Limpiar Canvas completamente en cada draw con clearRect.
+
+Comportamiento Warp (isOverdrive == true):
+- No usar clearRect.
+- Usar relleno semitransparente para persistencia de fotogramas:
+
+```javascript
+ctx.fillStyle = 'rgba(15, 15, 19, 0.1)';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+```
+
+### 16.4 Reglas de update durante Warp
+Cuando isOverdrive sea true:
+- Velocidad global: desplazamiento de obstaculos/orbes multiplicado por 1.5.
+- Invulnerabilidad: el jugador ignora colisiones fatales con obstaculos rojos.
+- Puntuacion: los puntos base por supervivencia aumentan al triple.
+
+### 16.5 Screen shake con CSS
+- Al iniciar Overdrive, agregar clase .warp-active al contenedor principal.
+- La clase .warp-active debe ejecutar una animacion corta e infinita (por ejemplo 0.1s infinite) alterando transform: translate() en margenes pequenos (por ejemplo entre -3px y 3px).
+- Al finalizar los 10 segundos, remover la clase .warp-active.
+
+### 16.6 Criterios de aceptacion especificos del Warp
+- [ ] El sistema activa correctamente el efecto visual al alcanzar multiplicador x4.
+- [ ] Las estelas luminosas se generan con relleno semitransparente de opacidad 10% sin degradar perceptiblemente el rendimiento.
+- [ ] La pantalla tiembla durante toda la duracion del estado usando animacion CSS.
+- [ ] El personaje es invulnerable a colisiones enemigas durante Warp.
+- [ ] Tras 10 segundos exactos, vuelve el renderizado limpio con clearRect y se remueve warp-active.
+- [ ] El cambio de codigo se concentra en Game Loop y reglas CSS para implementacion rapida.

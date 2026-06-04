@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shift Axis: Overdrive</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app" class="state-menu">
+    <canvas id="gameCanvas" aria-label="Shift Axis: Overdrive"></canvas>
+
+    <section id="hud" class="hud" aria-live="polite">
+      <div class="hud-block">
+        <span class="hud-label">Score</span>
+        <span id="scoreValue" class="hud-value">0</span>
+      </div>
+      <div class="hud-block">
+        <span class="hud-label">Tiempo</span>
+        <span id="timeValue" class="hud-value">0.0s</span>
+      </div>
+      <div class="hud-block">
+        <span class="hud-label">Vidas</span>
+        <span id="livesValue" class="hud-value">1</span>
+      </div>
+      <div class="hud-block">
+        <span class="hud-label">Multiplier</span>
+        <span id="multiplierValue" class="hud-value">x1</span>
+      </div>
+      <div class="hud-block">
+        <span class="hud-label">AI Mode</span>
+        <span id="aiModeValue" class="hud-value">CALM</span>
+      </div>
+      <div class="hud-block">
+        <span class="hud-label">Target</span>
+        <span id="targetValue" class="hud-value">1000</span>
+      </div>
+    </section>
+
+    <section id="overlay" class="overlay" role="dialog" aria-modal="true">
+      <h1 id="overlayTitle">Shift Axis: Overdrive</h1>
+      <p id="overlayMessage">Pulsa Space, click o touch para comenzar</p>
+      <ul id="howToPlay" class="how-to-play">
+        <li>Esquiva obstaculos alternando carril (arriba/abajo).</li>
+        <li>Recolecta orbes para subir multiplicador y activar wow.</li>
+        <li>Llega a 5000 puntos para ganar.</li>
+      </ul>
+      <div class="actions">
+        <button id="startBtn" class="btn">Iniciar</button>
+        <button id="restartBtn" class="btn" hidden>Reiniciar</button>
+      </div>
+      <p id="controlsHint" class="hint">Controles: Space / Click / Touch · Pausa: P</p>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
