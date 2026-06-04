@@ -171,21 +171,18 @@ body {
   filter: saturate(0.7) brightness(0.85);
 }
 
-#app.wow {
-  animation: spinPulse 2.6s linear 1;
-  filter: contrast(1.18) saturate(1.45) hue-rotate(-22deg);
+#app.warp-active {
+  animation: warpShake 0.1s linear infinite;
+  filter: contrast(1.2) saturate(1.5) brightness(1.08);
 }
 
-@keyframes spinPulse {
-  0% {
-    transform: scale(1) rotate(0deg);
-  }
-  50% {
-    transform: scale(1.014) rotate(180deg);
-  }
-  100% {
-    transform: scale(1) rotate(360deg);
-  }
+@keyframes warpShake {
+  0% { transform: translate(-3px, 1px); }
+  20% { transform: translate(2px, -2px); }
+  40% { transform: translate(-1px, 3px); }
+  60% { transform: translate(3px, -1px); }
+  80% { transform: translate(-2px, -2px); }
+  100% { transform: translate(1px, 2px); }
 }
 
 #app.shake {

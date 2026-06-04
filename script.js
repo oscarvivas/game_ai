@@ -3,6 +3,7 @@
     MENU: "menu",
     PLAYING: "playing",
     PAUSED: "paused",
+    VICTORY: "victory",
     GAMEOVER: "gameover"
   };
 
@@ -57,7 +58,8 @@
     outcome: "",
     changeCountWindow: 0,
     aiWindowTimer: 0,
-    wowTimer: 0,
+    isOverdrive: false,
+    overdriveTimer: 0,
     shieldCharges: 0,
     spawnTimer: 0,
     orbTimer: 0,
@@ -116,7 +118,8 @@
     state.outcome = "";
     state.changeCountWindow = 0;
     state.aiWindowTimer = 0;
-    state.wowTimer = 0;
+    state.isOverdrive = false;
+    state.overdriveTimer = 0;
     state.shieldCharges = 0;
     state.spawnTimer = 0;
     state.orbTimer = 0;
@@ -127,7 +130,7 @@
     state.player.trail = [];
     targetValue.textContent = String(TARGET_SCORE);
     syncHud();
-    app.classList.remove("wow", "paused", "shake");
+    app.classList.remove("warp-active", "paused", "shake");
   }
 
   function startRun() {
@@ -145,7 +148,7 @@
 
   function setMenu() {
     state.gameState = GAME_STATE.MENU;
-    app.classList.remove("state-playing", "paused", "wow", "shake");
+    app.classList.remove("state-playing", "paused", "warp-active", "shake");
     overlay.style.display = "grid";
     overlayTitle.textContent = "Shift Axis: Overdrive";
     overlayMessage.textContent = "Pulsa Space, click o touch para comenzar";
@@ -188,7 +191,7 @@
   }
 
   function setGameOver(outcome, message) {
-    state.gameState = GAME_STATE.GAMEOVER;
+    state.gameState = outcome === "victory" ? GAME_STATE.VICTORY : GAME_STATE.GAMEOVER;
     state.outcome = outcome;
     overlay.style.display = "grid";
     overlayTitle.textContent = outcome === "victory" ? "Victoria" : "Game Over";
@@ -304,16 +307,16 @@
     state.score += 100 * state.multiplier;
 
     if (orbType === "slow") {
-      state.wowTimer = Math.max(state.wowTimer, 4.5);
       playTone(300, 0.12, "triangle", 0.08);
     } else {
       state.shieldCharges = Math.min(2, state.shieldCharges + 1);
-      state.wowTimer = Math.max(state.wowTimer, 3.2);
       playTone(780, 0.07, "sine", 0.07);
     }
 
-    if (state.multiplier >= 4) {
-      state.wowTimer = Math.max(state.wowTimer, 9);
+    if (state.multiplier >= 4 && !state.isOverdrive) {
+      state.isOverdrive = true;
+      state.overdriveTimer = 10;
+      app.classList.add("warp-active");
       playTone(940, 0.2, "sawtooth", 0.09);
     }
   }
@@ -324,7 +327,8 @@
     state.speed += dt * 8;
     updateAi(dt);
 
-    const speed = state.speed * currentSpeedFactor();
+    const overdriveSpeedFactor = state.isOverdrive ? 1.5 : 1;
+    const speed = state.speed * currentSpeedFactor() * overdriveSpeedFactor;
     const spawnFactor = currentSpawnFactor();
 
     state.spawnTimer += dt;
@@ -355,6 +359,10 @@
       obs.x -= speed * dt;
 
       if (rectCollision(playerRect, obs)) {
+        if (state.isOverdrive) {
+          continue;
+        }
+
         if (state.shieldCharges > 0) {
           state.shieldCharges -= 1;
           state.score += 60;
@@ -403,7 +411,8 @@
       }
     }
 
-    state.score += dt * (30 * state.multiplier);
+    const survivalRate = state.isOverdrive ? 90 : 30;
+    state.score += dt * (survivalRate * state.multiplier);
 
     if (state.score >= TARGET_SCORE) {
       playTone(980, 0.26, "triangle", 0.12);
@@ -411,11 +420,15 @@
       return;
     }
 
-    if (state.wowTimer > 0) {
-      state.wowTimer -= dt;
-      app.classList.add("wow");
-    } else {
-      app.classList.remove("wow");
+    if (state.isOverdrive) {
+      state.overdriveTimer -= dt;
+      if (state.overdriveTimer <= 0) {
+        state.isOverdrive = false;
+        state.overdriveTimer = 0;
+        state.multiplier = 1;
+        state.combo = 0;
+        app.classList.remove("warp-active");
+      }
     }
 
     state.player.trail.push({ x: state.player.x, y: state.player.y, life: 0.4 });
@@ -442,13 +455,17 @@
   }
 
   function drawBackground() {
-    ctx.clearRect(0, 0, state.width, state.height);
-
-    const gradient = ctx.createLinearGradient(0, 0, state.width, state.height);
-    gradient.addColorStop(0, "#0f1020");
-    gradient.addColorStop(1, "#17172b");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, state.width, state.height);
+    if (state.isOverdrive) {
+      ctx.fillStyle = "rgba(15, 15, 19, 0.1)";
+      ctx.fillRect(0, 0, state.width, state.height);
+    } else {
+      ctx.clearRect(0, 0, state.width, state.height);
+      const gradient = ctx.createLinearGradient(0, 0, state.width, state.height);
+      gradient.addColorStop(0, "#0f1020");
+      gradient.addColorStop(1, "#17172b");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, state.width, state.height);
+    }
 
     ctx.strokeStyle = "rgba(255,255,255,0.25)";
     ctx.lineWidth = 2;
