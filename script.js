@@ -55,9 +55,11 @@
     },
     obstacles: [],
     orbs: [],
+    shots: [],
     ripple: [],
     stars: [],
     explosionShards: [],
+    asteroidDebris: [],
     fireworks: [],
     score: 0,
     multiplier: 1,
@@ -71,6 +73,7 @@
     shieldCharges: 0,
     spawnTimer: 0,
     orbTimer: 0,
+    shotCooldown: 0,
     orbSequenceCounter: 0,
     elapsed: 0,
     speed: 320,
@@ -235,9 +238,11 @@
   function resetRun() {
     state.obstacles = [];
     state.orbs = [];
+    state.shots = [];
     state.ripple = [];
     state.score = 0;
     state.explosionShards = [];
+    state.asteroidDebris = [];
     state.fireworks = [];
     state.multiplier = 1;
     state.combo = 0;
@@ -250,6 +255,7 @@
     state.shieldCharges = 0;
     state.spawnTimer = 0;
     state.orbTimer = 0;
+    state.shotCooldown = 0;
     state.orbSequenceCounter = 0;
     state.elapsed = 0;
     state.fireworkTimer = 0;
@@ -291,7 +297,7 @@
     overlayMessage.textContent = "Pulsa Space, click o touch para comenzar";
     howToPlay.hidden = false;
     controlsHint.hidden = false;
-    controlsHint.textContent = "Controles: Space / Click / Touch · Pausa: P";
+    controlsHint.textContent = "Controles: Space / Click / Touch · Disparo: Flecha Arriba · Pausa: P";
     startBtn.hidden = false;
     restartBtn.hidden = true;
     startBtn.textContent = "Iniciar";
@@ -308,7 +314,7 @@
     overlayMessage.textContent = "Presiona P o Continuar para volver";
     howToPlay.hidden = true;
     controlsHint.hidden = false;
-    controlsHint.textContent = "Controles: Space / Click / Touch · Reanudar: P";
+    controlsHint.textContent = "Controles: Space / Click / Touch · Disparo: Flecha Arriba · Reanudar: P";
     startBtn.hidden = false;
     startBtn.textContent = "Continuar";
     restartBtn.hidden = false;
@@ -321,7 +327,7 @@
     state.gameState = GAME_STATE.PLAYING;
     app.classList.remove("paused");
     overlay.style.display = "none";
-    controlsHint.textContent = "Controles: Space / Click / Touch · Pausa: P";
+    controlsHint.textContent = "Controles: Space / Click / Touch · Disparo: Flecha Arriba · Pausa: P";
     startBtn.textContent = "Iniciar";
     startBtn.hidden = true;
     restartBtn.hidden = true;
@@ -410,6 +416,26 @@
     state.player.laneSwitchT = 0;
     state.changeCountWindow += 1;
     playTone(540, 0.05, "square", 0.06);
+  }
+
+  function shoot() {
+    if (state.gameState !== GAME_STATE.PLAYING || state.crashPending) {
+      return;
+    }
+    if (state.shotCooldown > 0) {
+      return;
+    }
+
+    state.shotCooldown = 0.16;
+    state.shots.push({
+      x: state.player.x + state.player.size * 0.65,
+      y: state.player.y,
+      width: 16,
+      height: 4,
+      speed: 820,
+      life: 1.2
+    });
+    playTone(1020, 0.05, "triangle", 0.07);
   }
 
   function updatePlayerLane(dt) {
@@ -505,6 +531,26 @@
     }
   }
 
+  function triggerAsteroidExplosion(x, y, color) {
+    const pieces = 12;
+    for (let i = 0; i < pieces; i++) {
+      const angle = (Math.PI * 2 * i) / pieces + (Math.random() - 0.5) * 0.4;
+      const speed = 90 + Math.random() * 180;
+      state.asteroidDebris.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        size: 2 + Math.random() * 5,
+        life: 0.45 + Math.random() * 0.3,
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 10,
+        color: color || "#ff3e6c"
+      });
+    }
+    playTone(220, 0.08, "square", 0.08);
+  }
+
   function updateExplosion(dt) {
     for (let i = state.explosionShards.length - 1; i >= 0; i -= 1) {
       const shard = state.explosionShards[i];
@@ -515,6 +561,20 @@
       shard.life -= dt;
       if (shard.life <= 0) {
         state.explosionShards.splice(i, 1);
+      }
+    }
+  }
+
+  function updateAsteroidDebris(dt) {
+    for (let i = state.asteroidDebris.length - 1; i >= 0; i -= 1) {
+      const piece = state.asteroidDebris[i];
+      piece.vy += 460 * dt;
+      piece.x += piece.vx * dt;
+      piece.y += piece.vy * dt;
+      piece.rotation += piece.rotationSpeed * dt;
+      piece.life -= dt;
+      if (piece.life <= 0) {
+        state.asteroidDebris.splice(i, 1);
       }
     }
   }
@@ -602,6 +662,7 @@
 
   function updatePlaying(dt) {
     state.elapsed += dt;
+    state.shotCooldown = Math.max(0, state.shotCooldown - dt);
 
     if (state.crashPending) {
       state.crashDelay -= dt;
@@ -638,6 +699,15 @@
       state.orbTimer = 0;
     }
 
+    for (let i = state.shots.length - 1; i >= 0; i -= 1) {
+      const shot = state.shots[i];
+      shot.x += shot.speed * dt;
+      shot.life -= dt;
+      if (shot.x > state.width + 30 || shot.life <= 0) {
+        state.shots.splice(i, 1);
+      }
+    }
+
     const playerRect = {
       x: state.player.x - state.player.size / 2,
       y: state.player.y - state.player.size / 2,
@@ -651,6 +721,30 @@
       
       if (obs.rotation !== undefined) {
         obs.rotation += obs.rotationSpeed * dt;
+      }
+
+      let destroyedByShot = false;
+      for (let j = state.shots.length - 1; j >= 0; j -= 1) {
+        const shot = state.shots[j];
+        const shotRect = {
+          x: shot.x - shot.width / 2,
+          y: shot.y - shot.height / 2,
+          width: shot.width,
+          height: shot.height
+        };
+        if (rectCollision(shotRect, obs)) {
+          state.shots.splice(j, 1);
+          const centerX = obs.x + obs.width / 2;
+          const centerY = obs.y + obs.height / 2;
+          triggerAsteroidExplosion(centerX, centerY, obs.color);
+          state.score += 80;
+          state.obstacles.splice(i, 1);
+          destroyedByShot = true;
+          break;
+        }
+      }
+      if (destroyedByShot) {
+        continue;
       }
 
       if (rectCollision(playerRect, obs)) {
@@ -885,6 +979,20 @@
     }
   }
 
+  function drawAsteroidDebris() {
+    for (const piece of state.asteroidDebris) {
+      const alpha = Math.max(0, Math.min(1, piece.life));
+      ctx.save();
+      ctx.translate(piece.x, piece.y);
+      ctx.rotate(piece.rotation);
+      ctx.fillStyle = piece.color;
+      ctx.globalAlpha = alpha;
+      ctx.fillRect(-piece.size / 2, -piece.size / 2, piece.size, piece.size);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+  }
+
   function drawFireworks() {
     for (const spark of state.fireworks) {
       const alpha = Math.max(0, Math.min(1, spark.life));
@@ -987,6 +1095,18 @@
     }
   }
 
+  function drawShots() {
+    for (const shot of state.shots) {
+      ctx.save();
+      ctx.shadowColor = "#ffffff";
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(shot.x - shot.width / 2, shot.y - shot.height / 2, shot.width, shot.height);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+  }
+
   function drawPausedTag() {
     if (state.gameState !== GAME_STATE.PAUSED) {
       return;
@@ -1001,7 +1121,9 @@
     drawBackground();
     drawObstacles();
     drawOrbs();
+    drawShots();
     drawPlayer();
+    drawAsteroidDebris();
     drawExplosion();
     drawFireworks();
     drawPausedTag();
@@ -1012,6 +1134,7 @@
     state.lastTs = ts;
 
     updateExplosion(delta);
+    updateAsteroidDebris(delta);
     updateFireworks(delta);
 
     if (state.gameState === GAME_STATE.PLAYING) {
@@ -1037,6 +1160,12 @@
     if (event.code === "Space") {
       event.preventDefault();
       onPrimaryAction(event);
+      return;
+    }
+    if (event.code === "ArrowUp") {
+      event.preventDefault();
+      initAudio();
+      shoot();
       return;
     }
     if (event.code === "KeyP") {
