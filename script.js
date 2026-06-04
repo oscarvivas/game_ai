@@ -58,6 +58,7 @@
     ripple: [],
     stars: [],
     explosionShards: [],
+    fireworks: [],
     score: 0,
     multiplier: 1,
     combo: 0,
@@ -75,7 +76,8 @@
     speed: 320,
     pausedTime: 0,
     lastTs: 0,
-    ambientSoundTimer: 0
+    ambientSoundTimer: 0,
+    fireworkTimer: 0
     ,crashPending: false
     ,crashDelay: 0
   };
@@ -236,6 +238,7 @@
     state.ripple = [];
     state.score = 0;
     state.explosionShards = [];
+    state.fireworks = [];
     state.multiplier = 1;
     state.combo = 0;
     state.aiMode = AI_MODE.CALM;
@@ -249,6 +252,7 @@
     state.orbTimer = 0;
     state.orbSequenceCounter = 0;
     state.elapsed = 0;
+    state.fireworkTimer = 0;
     state.speed = 320;
     state.player.isTop = true;
     state.player.y = laneY(true);
@@ -339,8 +343,53 @@
     
     if (outcome === "victory") {
       playVictorySound();
+      state.fireworkTimer = 0;
+      spawnFireworkBurst(state.width * 0.3, state.height * 0.32);
+      spawnFireworkBurst(state.width * 0.68, state.height * 0.27);
     } else {
       playDefeatSound();
+    }
+  }
+
+  function spawnFireworkBurst(x, y) {
+    const palette = ["#ffe55c", "#65b6ff", "#ff3e6c", "#23f4ee", "#ffffff"];
+    const pieces = 28;
+    for (let i = 0; i < pieces; i++) {
+      const angle = (Math.PI * 2 * i) / pieces + (Math.random() - 0.5) * 0.2;
+      const speed = 80 + Math.random() * 240;
+      state.fireworks.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 0.9 + Math.random() * 0.45,
+        size: 2 + Math.random() * 3.5,
+        color: palette[Math.floor(Math.random() * palette.length)]
+      });
+    }
+  }
+
+  function updateFireworks(dt) {
+    for (let i = state.fireworks.length - 1; i >= 0; i -= 1) {
+      const spark = state.fireworks[i];
+      spark.vy += 260 * dt;
+      spark.x += spark.vx * dt;
+      spark.y += spark.vy * dt;
+      spark.vx *= 0.99;
+      spark.life -= dt;
+      if (spark.life <= 0) {
+        state.fireworks.splice(i, 1);
+      }
+    }
+
+    if (state.gameState === GAME_STATE.VICTORY) {
+      state.fireworkTimer += dt;
+      if (state.fireworkTimer >= 0.45) {
+        state.fireworkTimer = 0;
+        const x = state.width * (0.15 + Math.random() * 0.7);
+        const y = state.height * (0.12 + Math.random() * 0.38);
+        spawnFireworkBurst(x, y);
+      }
     }
   }
 
@@ -836,6 +885,23 @@
     }
   }
 
+  function drawFireworks() {
+    for (const spark of state.fireworks) {
+      const alpha = Math.max(0, Math.min(1, spark.life));
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.shadowColor = spark.color;
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = spark.color;
+      ctx.beginPath();
+      ctx.arc(spark.x, spark.y, spark.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+  }
+
   function drawObstacles() {
     for (const obs of state.obstacles) {
       if (!obs.vertices) {
@@ -937,6 +1003,7 @@
     drawOrbs();
     drawPlayer();
     drawExplosion();
+    drawFireworks();
     drawPausedTag();
   }
 
@@ -945,6 +1012,7 @@
     state.lastTs = ts;
 
     updateExplosion(delta);
+    updateFireworks(delta);
 
     if (state.gameState === GAME_STATE.PLAYING) {
       updatePlaying(delta);
