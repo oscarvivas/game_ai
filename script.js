@@ -960,14 +960,47 @@
 
     const shipSize = state.player.size;
     const glowIntensity = state.isOverdrive ? 28 : 16;
+    const enginePulse = 0.7 + Math.sin(state.elapsed * 24) * 0.2;
+    const thrustIntensity = Math.min(1.7, state.speed / 320) * (state.isOverdrive ? 1.5 : 1);
     
     ctx.save();
     ctx.translate(state.player.x, state.player.y);
     ctx.rotate(state.player.tilt);
+
+    // Engine flame layers for a hot exhaust effect.
+    const exhaustLength = shipSize * (0.85 + thrustIntensity * 0.65) * enginePulse;
+    const outerFlame = ctx.createLinearGradient(-shipSize * 0.65, 0, -shipSize * 1.35 - exhaustLength, 0);
+    outerFlame.addColorStop(0, "rgba(255, 186, 58, 0.9)");
+    outerFlame.addColorStop(0.45, "rgba(255, 112, 46, 0.85)");
+    outerFlame.addColorStop(1, "rgba(255, 48, 32, 0)");
+    ctx.fillStyle = outerFlame;
+    ctx.beginPath();
+    ctx.moveTo(-shipSize * 0.2, -shipSize * 0.22);
+    ctx.lineTo(-shipSize * 0.95 - exhaustLength, 0);
+    ctx.lineTo(-shipSize * 0.2, shipSize * 0.22);
+    ctx.closePath();
+    ctx.fill();
+
+    const coreFlame = ctx.createLinearGradient(-shipSize * 0.45, 0, -shipSize * 1.05 - exhaustLength * 0.75, 0);
+    coreFlame.addColorStop(0, "rgba(255, 255, 210, 0.95)");
+    coreFlame.addColorStop(0.5, "rgba(127, 229, 255, 0.9)");
+    coreFlame.addColorStop(1, "rgba(80, 180, 255, 0)");
+    ctx.fillStyle = coreFlame;
+    ctx.beginPath();
+    ctx.moveTo(-shipSize * 0.16, -shipSize * 0.11);
+    ctx.lineTo(-shipSize * 0.8 - exhaustLength * 0.75, 0);
+    ctx.lineTo(-shipSize * 0.16, shipSize * 0.11);
+    ctx.closePath();
+    ctx.fill();
     
     ctx.shadowColor = "#23f4ee";
     ctx.shadowBlur = glowIntensity;
-    ctx.fillStyle = "#23f4ee";
+    const hullGradient = ctx.createLinearGradient(-shipSize * 0.35, -shipSize * 0.5, shipSize * 0.55, shipSize * 0.5);
+    hullGradient.addColorStop(0, "#d2f8ff");
+    hullGradient.addColorStop(0.35, "#67d5ff");
+    hullGradient.addColorStop(0.75, "#2ba5f4");
+    hullGradient.addColorStop(1, "#1568b6");
+    ctx.fillStyle = hullGradient;
     
     ctx.beginPath();
     ctx.moveTo(shipSize * 0.5, 0);
@@ -979,15 +1012,49 @@
     ctx.fill();
     
     ctx.shadowBlur = glowIntensity * 0.6;
-    ctx.fillStyle = "#65b6ff";
+    const noseGradient = ctx.createLinearGradient(shipSize * 0.06, -shipSize * 0.16, shipSize * 0.55, shipSize * 0.16);
+    noseGradient.addColorStop(0, "#b8ebff");
+    noseGradient.addColorStop(1, "#3a8aff");
+    ctx.fillStyle = noseGradient;
     ctx.beginPath();
     ctx.moveTo(shipSize * 0.5, 0);
     ctx.lineTo(shipSize * 0.1, -shipSize * 0.15);
     ctx.lineTo(shipSize * 0.1, shipSize * 0.15);
     ctx.closePath();
     ctx.fill();
-    
+
     ctx.shadowBlur = 0;
+    ctx.fillStyle = "rgba(12, 54, 104, 0.45)";
+    ctx.beginPath();
+    ctx.moveTo(shipSize * 0.35, 0);
+    ctx.lineTo(-shipSize * 0.22, shipSize * 0.34);
+    ctx.lineTo(-shipSize * 0.06, shipSize * 0.12);
+    ctx.closePath();
+    ctx.fill();
+
+    const canopyGradient = ctx.createRadialGradient(
+      shipSize * 0.1,
+      -shipSize * 0.08,
+      shipSize * 0.02,
+      shipSize * 0.15,
+      -shipSize * 0.04,
+      shipSize * 0.24
+    );
+    canopyGradient.addColorStop(0, "rgba(255, 255, 255, 0.95)");
+    canopyGradient.addColorStop(0.45, "rgba(145, 220, 255, 0.8)");
+    canopyGradient.addColorStop(1, "rgba(43, 122, 214, 0.35)");
+    ctx.fillStyle = canopyGradient;
+    ctx.beginPath();
+    ctx.ellipse(shipSize * 0.1, -shipSize * 0.01, shipSize * 0.2, shipSize * 0.12, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.55)";
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.moveTo(-shipSize * 0.12, -shipSize * 0.27);
+    ctx.lineTo(shipSize * 0.34, -shipSize * 0.02);
+    ctx.stroke();
+    
     ctx.restore();
   }
 
