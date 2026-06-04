@@ -49,6 +49,9 @@ Cuando el jugador entra en Overdrive:
 - Al pulsar Space/click/touch, el jugador alterna instantaneamente entre carril superior e inferior.
 - Sobrevivir suma puntaje continuo.
 - Recolectar orbes aumenta puntaje y puede elevar multiplicador.
+- Balance de orbes:
+	- El orbe de vida (escudo/vida extra) debe aparecer con menor frecuencia que los orbes comunes.
+	- Debe existir un orbe rojo especial, de aparicion rara, que al recolectarse provoque un giro unico de pantalla de 360 grados.
 
 ## 6. IA y uso de Devin (criterio del reto)
 ## 6.1 IA visible en el juego
@@ -69,6 +72,7 @@ Supuesto explicito: "Devin" se interpreta como asistente de desarrollo asistido 
 - Estilo visual coherente (retro-neon o equivalente), no placeholder plano sin pulido.
 - Efectos minimos de game feel: glow, trail, shake o ripple.
 - Efecto Warp obligatorio: estela visual por opacidad + shake CSS.
+- Efecto especial de orbe rojo: rotacion 360 de una sola vuelta (no infinita).
 - Sonido funcional:
 - Efecto para input/salto de carril.
 - Efecto para colision/recolectable.
@@ -105,6 +109,8 @@ Transiciones obligatorias:
 - Hay condicion de victoria o derrota implementada y comprobable.
 - El boton de reinicio reinicia completamente la sesion de juego.
 - El momento wow (Warp) ocurre en una partida normal y es claramente visible.
+- El orbe de vida aparece con menor frecuencia que los demas orbes.
+- El orbe rojo aparece de forma rara y activa exactamente un giro de 360 grados al recolectarse.
 - Existe al menos un uso de IA visible dentro del gameplay.
 - El juego se puede demostrar completo en 90 segundos.
 - Calidad visual y sonora suficiente para una demo de hackathon.
@@ -114,6 +120,7 @@ Transiciones obligatorias:
 - 15-40s: mostrar mecanica principal (cambio de carril) y puntaje en vivo.
 - 40-65s: evidenciar IA adaptativa (dificultad/patrones cambian por comportamiento).
 - 65-80s: activar momento wow (Warp/Overdrive) con estelas + shake + audio.
+- 80-85s: mostrar orbe rojo especial (si aparece en corrida o mediante build de demo) y giro unico 360.
 - 80-90s: provocar cierre (victoria o derrota) y usar boton de reinicio.
 
 ## 13. Plan de implementacion (1 hora)
@@ -172,6 +179,11 @@ Cuando isOverdrive sea true:
 - Invulnerabilidad: el jugador ignora colisiones fatales con obstaculos rojos.
 - Puntuacion: los puntos base por supervivencia aumentan al triple.
 
+Reglas de spawning de orbes (global):
+- Orbe de vida: reducir frecuencia respecto a orbes normales (ejemplo recomendado: 40-60% menos aparicion).
+- Orbe rojo especial: frecuencia rara (ejemplo recomendado: 70-85% menos que orbe normal).
+- Al recolectar orbe rojo: activar una animacion de rotacion de 360 grados de una sola vuelta y luego restaurar transform normal.
+
 ### 16.5 Screen shake con CSS
 - Al iniciar Overdrive, agregar clase .warp-active al contenedor principal.
 - La clase .warp-active debe ejecutar una animacion corta e infinita (por ejemplo 0.1s infinite) alterando transform: translate() en margenes pequenos (por ejemplo entre -3px y 3px).
@@ -184,3 +196,5 @@ Cuando isOverdrive sea true:
 - [ ] El personaje es invulnerable a colisiones enemigas durante Warp.
 - [ ] Tras 10 segundos exactos, vuelve el renderizado limpio con clearRect y se remueve warp-active.
 - [ ] El cambio de codigo se concentra en Game Loop y reglas CSS para implementacion rapida.
+- [ ] La aparicion del orbe de vida es visiblemente menor que la de orbes comunes.
+- [ ] El orbe rojo especial, de frecuencia rara, dispara un unico giro de 360 grados y se detiene automaticamente.
