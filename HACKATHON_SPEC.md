@@ -1,185 +1,139 @@
-# 🎮 HACKATHON SPEC – "NeuroRogue: Adaptive AI Dungeon"
+# HACKATHON_SPEC.md
 
-## 1. 🎯 Elevator Pitch
-"NeuroRogue" es un dungeon crawler web donde el comportamiento de los enemigos evoluciona dinámicamente en función del estilo de juego del usuario usando AI. Cada partida es distinta, ya que los enemigos aprenden y se adaptan.
+## 1. Nombre del juego
+Shift Axis: Overdrive
 
----
+## 2. Reto y objetivo
+Construir un juego web completo y funcional en 1 hora, demostrable en 90 segundos, que corra en Google Chrome y muestre:
+- Mecanica principal clara.
+- Sistema de puntaje.
+- Condicion de cierre (ganar o perder).
+- Boton de reinicio.
+- Momento wow visual durante la partida.
+- Jugabilidad divertida.
+- Uso efectivo de IA y Devin en el proceso de desarrollo y en el producto.
+- Creatividad y calidad visual/sonora.
 
-## 2. 🧠 AI Concept (MANDATORY for evaluation)
-El juego utiliza AI para:
-- Analizar el comportamiento del jugador (movimientos, ataques, decisiones).
-- Generar estrategias adaptativas de enemigos.
-- Ajustar dificultad en tiempo real (Dynamic Difficulty Adjustment).
-- Opcional: generar descripciones narrativas dinámicas del dungeon.
+## 3. Elevator pitch
+Juego arcade de un boton donde el jugador invierte su posicion entre arriba/abajo de un eje central para sobrevivir, sumar puntos y activar Overdrive, un estado espectacular de alto impacto visual y sonoro.
 
-👉 El objetivo NO es solo usar AI, sino que sea visible en gameplay.
+## 4. MVP (obligatorio)
+### 4.1 Core jugable
+- Pantalla inicial con instruccion para comenzar.
+- Bucle jugable funcional: input -> update -> render.
+- Control unico (Space/click/touch) para alternar posicion del jugador.
+- Obstaculos que causan derrota al colisionar.
+- Objetos recolectables para sumar puntos y habilitar racha/multiplicador.
 
----
+### 4.2 Reglas de cierre
+- Victoria: alcanzar puntaje objetivo (por defecto: 1000).
+- Derrota: colision fatal con obstaculo.
+- Ambos estados deben detener la partida y mostrar resultado.
 
-## 3. ✅ MVP (Must Have)
-Estas funcionalidades deben estar COMPLETAS para la demo:
+### 4.3 UI minima requerida
+- HUD con puntaje actual.
+- Indicador de multiplicador o estado de racha.
+- Mensaje de victoria/derrota.
+- Boton de reinicio funcional (sin recargar pagina).
 
-### Gameplay Core
-- Movimiento del jugador en grid o libre.
-- Al menos 1 tipo de enemigo.
-- Sistema de combate (ataque y daño).
-- Condición de victoria (sobrevivir X tiempo o eliminar enemigos).
-- Condición de derrota (vida = 0).
+### 4.4 Momento wow (obligatorio)
+Cuando el jugador entra en Overdrive:
+- Rotacion/transformacion del contenedor de juego.
+- Cambio fuerte de paleta (filtro, glow, contrastes).
+- Refuerzo sonoro (subida de energia) y feedback visual de impacto.
 
-### AI Adaptativa (CORE DIFERENCIADOR)
-- El enemigo cambia comportamiento según el estilo del jugador:
-  - Ej: si el jugador evade → enemigo persigue más agresivamente
-  - Ej: si el jugador ataca constantemente → enemigo esquiva o contraataca
+## 5. Mecanica principal del juego
+- El jugador permanece en X fija.
+- El mundo (obstaculos y orbes) se desplaza de derecha a izquierda.
+- Al pulsar Space/click/touch, el jugador alterna instantaneamente entre carril superior e inferior.
+- Sobrevivir suma puntaje continuo.
+- Recolectar orbes aumenta puntaje y puede elevar multiplicador.
 
-### UI mínima
-- Pantalla de juego
-- HUD (vida + score o tiempo)
-- Pantalla de Game Over
+## 6. IA y uso de Devin (criterio del reto)
+## 6.1 IA visible en el juego
+Debe existir al menos un comportamiento observable impulsado por IA/heuristica adaptativa:
+- Enemigos ajustan frecuencia o patron segun estilo del jugador (ejemplo: si cambia poco de carril, spawnea patron que lo fuerce a reaccionar).
+- O director de dificultad dinamica que adapta velocidad/spawn en tiempo real.
 
----
+## 6.2 IA/Devin en desarrollo
+Se debe evidenciar uso efectivo de IA y Devin para acelerar produccion:
+- Generacion de estructura base y loop.
+- Ajuste rapido de balance y parametros.
+- Creacion/mejora de efectos visuales y sonoros.
+- Registro breve en README o notas de que fue co-creado con IA/Devin.
 
-## 4. ✨ Nice to Have (si hay tiempo)
-- Múltiples tipos de enemigos con comportamientos distintos
-- Generación procedural simple del dungeon
-- Narrativa dinámica generada por AI
-- Power-ups
-- Animaciones / efectos visuales (juice)
+Supuesto explicito: "Devin" se interpreta como asistente de desarrollo asistido por IA durante construccion y refinamiento.
 
----
+## 7. Requisitos visuales y sonoros
+- Estilo visual coherente (retro-neon o equivalente), no placeholder plano sin pulido.
+- Efectos minimos de game feel: glow, trail, shake o ripple.
+- Sonido funcional:
+- Efecto para input/salto de carril.
+- Efecto para colision/recolectable.
+- Efecto distintivo para Overdrive.
+- Rendimiento fluido en Chrome (objetivo: percepcion estable cercana a 60 FPS).
 
-## 5. 🎮 Game Rules
+## 8. Alcance fuera de MVP (si sobra tiempo)
+- Menu de pausa.
+- Mas tipos de enemigos/orbes.
+- Tabla de mejores puntajes local.
+- Narrativa corta de inicio/cierre.
 
-### Player
-- Input: teclado (WASD o flechas)
-- Acciones:
-  - Mover
-  - Atacar
+## 9. Arquitectura sugerida
+- index.html: canvas, HUD, overlays de estado.
+- style.css: layout responsive, paleta, efectos y animaciones.
+- script.js: estado global, entidades, colisiones, game loop, AI adaptativa.
+- assets/: audio e imagenes minimas (si aplica).
 
-### Enemigo
-- Tiene al menos 2 estados:
-  - Perseguir
-  - Esquivar / táctico (dependiendo del jugador)
+## 10. Estados del juego
+- START
+- PLAYING
+- VICTORY
+- GAME_OVER
 
-### Combate
-- Ataque reduce vida
-- Feedback visual (mínimo cambio de color)
+Transiciones obligatorias:
+- START -> PLAYING
+- PLAYING -> VICTORY o GAME_OVER
+- VICTORY/GAME_OVER -> PLAYING (reinicio)
 
-### Loop principal
-1. Input jugador
-2. Update estado jugador
-3. AI evalúa comportamiento del jugador
-4. Enemy decide acción
-5. Render
+## 11. Criterios de aceptacion (Definition of Done)
+- El juego abre y funciona en Google Chrome sin errores bloqueantes.
+- Existe mecanica principal claramente jugable desde el segundo 1.
+- El puntaje se ve y se actualiza en tiempo real.
+- Hay condicion de victoria o derrota implementada y comprobable.
+- El boton de reinicio reinicia completamente la sesion de juego.
+- El momento wow ocurre en una partida normal y es claramente visible.
+- Existe al menos un uso de IA visible dentro del gameplay.
+- El juego se puede demostrar completo en 90 segundos.
+- Calidad visual y sonora suficiente para una demo de hackathon.
 
----
+## 12. Guion de demo (90 segundos)
+- 0-15s: abrir juego en Chrome, explicar objetivo en una frase.
+- 15-40s: mostrar mecanica principal (cambio de carril) y puntaje en vivo.
+- 40-65s: evidenciar IA adaptativa (dificultad/patrones cambian por comportamiento).
+- 65-80s: activar momento wow (Overdrive) con impacto visual y sonoro.
+- 80-90s: provocar cierre (victoria o derrota) y usar boton de reinicio.
 
-## 6. 🏗️ Technical Constraints
+## 13. Plan de implementacion (1 hora)
+- Min 0-10: estructura base + estados + loop.
+- Min 10-20: input y movimiento binario del jugador.
+- Min 20-35: obstaculos/orbes + colisiones + score.
+- Min 35-45: cierre (win/lose) + overlays + reinicio.
+- Min 45-55: IA adaptativa visible + balance minimo.
+- Min 55-60: momento wow + pulido audiovisual + smoke test en Chrome.
 
-### Stack
-- Web (Canvas/WebGL/Framework 2D: Phaser sugerido)
-- Frontend-only (idealmente sin backend complejo)
-- Deploy en entorno público (GitHub Pages, Vercel, etc.)
+## 14. Riesgos y mitigacion
+- Riesgo: IA muy compleja para 1 hora.
+- Mitigacion: usar heuristicas simples pero visibles y explicables.
 
-### AI Constraints
-- Puede ser:
-  - Reglas heurísticas (simulando "inteligencia")
-  - Uso real de modelo AI (si hay tiempo)
-- Debe ser:
-  - Visible
-  - Explicable en demo
+- Riesgo: falta de pulido visual/sonoro.
+- Mitigacion: priorizar 3 efectos de alto impacto (glow, shake, overdrive sfx).
 
----
+- Riesgo: demo falla por bug de estado.
+- Mitigacion: probar 3 flujos antes de cerrar (inicio, derrota, reinicio).
 
-## 7. 📊 Player Behavior Model (Base para AI)
-
-Se monitorean estas métricas:
-
-- Frecuencia de ataque
-- Frecuencia de movimiento
-- Tiempo sin atacar
-- Distancia promedio a enemigos
-
-### Clasificación de jugador (ejemplo):
-- AGRESIVO → ataca constantemente
-- DEFENSIVO → evade más que ataca
-- EXPLORADOR → se mueve constantemente
-
-👉 Esto alimenta la lógica adaptativa del enemigo.
-
----
-
-## 8. 🤖 Enemy Adaptation Rules
-
-| Player Type | Enemy Behavior |
-|------------|--------------|
-| Agresivo   | Retirada + contraataques |
-| Defensivo  | Persecución agresiva |
-| Explorador | Emboscadas / interceptación |
-
-✅ Debe haber al menos 1 cambio observable en runtime.
-
----
-
-## 9. 🧪 Acceptance Criteria (CRÍTICO)
-
-Para considerar el proyecto terminado:
-
-- ✅ El juego inicia sin errores
-- ✅ El jugador puede morir o ganar
-- ✅ Hay al menos 1 comportamiento adaptativo observable
-- ✅ La AI responde diferente a distintos estilos de juego
-- ✅ El juego es demostrable en 60–90 segundos
-
----
-
-## 10. 🧪 Demo Script (OBLIGATORIO)
-
-### Escenario 1
-- Jugar agresivo (solo atacar)
-→ Mostrar que el enemigo cambia comportamiento
-
-### Escenario 2
-- Jugar evasivo (solo moverse)
-→ Ver comportamiento distinto del enemigo
-
-### Explicación (30s)
-- “Nuestro juego usa AI para adaptarse al jugador...”
-
----
-
-## 11. ⚠️ Assumptions (para alinear equipo)
-
-- Solo 1 nivel (no mapa gigante)
-- No hay persistencia entre partidas
-- Assets pueden ser placeholders
-- Animaciones no son obligatorias
-
----
-
-## 12. 🚧 Risks
-
-| Riesgo | Mitigación |
-|-------|-----------|
-| AI muy compleja | Usar reglas simples pero visibles |
-| Falta de tiempo | Priorizar loop jugable + adaptación |
-| Bugs de integración | PRs pequeños + pruebas rápidas |
-
----
-
-## 13. 📦 Deliverables
-
-- Repo público
-- Juego deployado (URL)
-- HACKATHON_SPEC.md actualizado
-- Demo funcional
-
----
-
-## 14. 🎤 Pitch (para cerrar la hackathon)
-
-"NeuroRogue no es solo un juego… es un juego que aprende de ti.  
-Cada decisión cambia cómo el mundo responde."
-
----
-
-``
+## 15. Entregables
+- Codigo fuente del juego web.
+- HACKATHON_SPEC.md actualizado.
+- Demo funcional de 90 segundos en Chrome.
+- Nota corta del uso de IA/Devin en el desarrollo.

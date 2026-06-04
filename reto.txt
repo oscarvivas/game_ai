@@ -1,0 +1,14 @@
+el reto consiste en desarrollar un juego para la web 
+solo se tiene un plazo de una 1 hora desarrollar el juego 
+se debe hacer una demostracion de 90 segundos
+el juego debe funcionar en el navegador chrome
+debe estar completo y funcional 
+debe tener mecanica principal del juego
+manejo de puntaje 
+una condicion de cierre 
+boton de reinicio
+debe tener un momento woooooww del juego, que demuestre que se vea bien
+debe tener jugabilidad y deversion 
+uso efectivo de la AI y devin
+el juego debe demostrar creatividad 
+debe tener calidad visual y sonora
